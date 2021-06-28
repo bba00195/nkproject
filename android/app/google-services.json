@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "964961454383",
+    "project_id": "nkscheduleapp",
+    "storage_bucket": "nkscheduleapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:964961454383:android:c0e3bdb4912b62c741b9da",
+        "android_client_info": {
+          "package_name": "com.project.nk"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "964961454383-k9mkvt0pvs842acqn105q5r50kvsumu0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy8of9owe2yqh_OWfVtUOZBb_zuZbW1n4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "964961454383-k9mkvt0pvs842acqn105q5r50kvsumu0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
