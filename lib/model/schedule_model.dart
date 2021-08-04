@@ -68,6 +68,10 @@ class ScheduleDetailResponseModel {
   final int comFlag;
   final String orderNo;
   final String shipNo;
+  final String refUsers;
+  final String conUserId;
+  final String jabUser;
+  final String meetCode;
 
   ScheduleDetailResponseModel({
     required this.appoKind,
@@ -92,6 +96,10 @@ class ScheduleDetailResponseModel {
     required this.comFlag,
     required this.orderNo,
     required this.shipNo,
+    required this.refUsers,
+    required this.conUserId,
+    required this.jabUser,
+    required this.meetCode,
   });
 
   factory ScheduleDetailResponseModel.fromJson(Map<String, dynamic> json) {
@@ -121,6 +129,11 @@ class ScheduleDetailResponseModel {
       comFlag: json['com_flag'] != null ? json['com_flag'] as int : 0,
       orderNo: json['order_no'] != null ? json['order_no'] as String : "",
       shipNo: json['ship_no'] != null ? json['ship_no'] as String : "",
+      refUsers: json['ref_users'] != null ? json['ref_users'] as String : "",
+      conUserId:
+          json['con_user_id'] != null ? json['con_user_id'] as String : "",
+      jabUser: json['jab_user'] != null ? json['jab_user'] as String : "",
+      meetCode: json['MEETCODE'] != null ? json['MEETCODE'] as String : "",
     );
   }
 }

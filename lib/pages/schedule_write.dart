@@ -1,16 +1,21 @@
 // #region Import
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_summernote/flutter_summernote.dart';
 import 'package:intl/intl.dart';
 import 'package:nkproject/common/api_service.dart';
 import 'package:nkproject/common/nk_widget.dart';
 import 'package:nkproject/home.dart';
 import 'package:nkproject/model/conference_model.dart';
+import 'package:nkproject/model/employee_model.dart';
 import 'package:nkproject/model/login_model.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:http/http.dart' as http;
 // #endregion
 
 class ScheduleWrite extends StatefulWidget {
@@ -36,6 +41,7 @@ class ScheduleWriteState extends State<ScheduleWrite> {
 
   APIService apiService = new APIService();
   final GlobalKey<ScaffoldState> scaffoldKey = new GlobalKey<ScaffoldState>();
+  final GlobalKey<FlutterSummernoteState> summernoteKey = new GlobalKey();
   FocusNode titleFocusNode = FocusNode();
   FocusNode ownerFocusNode = FocusNode();
   FocusNode makerFocusNode = FocusNode();
@@ -74,7 +80,32 @@ class ScheduleWriteState extends State<ScheduleWrite> {
 
   double _currentSliderValue = 0;
 
-  int statusValue = 1;
+  int statusValue = 0;
+
+  String conUserNameList = '';
+  List<String> conUserNameValue = [];
+  List<String> conUserIdValue = [];
+  List<String> conUserHpTokenValue = [];
+
+  String jabUserNameList = '';
+  List<String> jabUserNameValue = [];
+  List<String> jabUserIdValue = [];
+  List<String> jabUserHpTokenValue = [];
+
+  String refUserNameList = '';
+  List<String> refUserNameValue = [];
+  List<String> refUserIdValue = [];
+  List<String> refUserHpTokenValue = [];
+
+  String constructFCMPayload(String token, String title) {
+    return jsonEncode({
+      'registration_ids': [token],
+      'notification': {
+        'title': '[NK 일정 참조 알림]',
+        'body': title + '에 참조자로 지정되었습니다.',
+      },
+    });
+  }
 
   @override
   void initState() {
@@ -107,6 +138,59 @@ class ScheduleWriteState extends State<ScheduleWrite> {
     super.dispose();
   }
 
+  Future<void> sendPushMessage(String sHpToken, String sMeetName) async {
+    // if (member.user.token == null) {
+    //   print('Unable to send FCM message, no token exists.');
+    //   return;
+    // }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        body: constructFCMPayload(sHpToken, sMeetName),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization':
+              'key=AAAA4KwvSS8:APA91bGpMfrrYpop-z11KJcE47TOth_CDaapN5jBiUfqevutE0zhBmvrhcjjWDybjlUvd7eEDI7sCgVf5WSGknYy_lX1-j8V2luAaPNa44bqdawnXpdaXfQRy3MqFrEpjHxo8ein7ZWn',
+        },
+      );
+      final result = (json.decode(response.body));
+      print(result);
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  conUserList(String nameList, List<String> idValue, List<String> nameValue,
+      List<String> hpTokenValue) {
+    setState(() {
+      conUserNameList = nameList;
+      conUserNameValue = nameValue;
+      conUserIdValue = idValue;
+      conUserHpTokenValue = hpTokenValue;
+    });
+  }
+
+  jabUserList(String nameList, List<String> idValue, List<String> nameValue,
+      List<String> hpTokenValue) {
+    setState(() {
+      jabUserNameList = nameList;
+      jabUserNameValue = nameValue;
+      jabUserIdValue = idValue;
+      jabUserHpTokenValue = hpTokenValue;
+    });
+  }
+
+  refUserList(String nameList, List<String> idValue, List<String> nameValue,
+      List<String> hpTokenValue) {
+    setState(() {
+      refUserNameList = nameList;
+      refUserNameValue = nameValue;
+      refUserIdValue = idValue;
+      refUserHpTokenValue = hpTokenValue;
+    });
+  }
+
   scheduleInsert(
     String sSubject,
     DateTime dSDate,
@@ -127,9 +211,6 @@ class ScheduleWriteState extends State<ScheduleWrite> {
     jabFocusNode.unfocus();
     conFocusNode.unfocus();
 
-    String sSDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dSDate);
-    String sEDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dEDate);
-
     if (sSubject == '') {
       show("제목은 필수 입력값입니다.");
       return;
@@ -138,6 +219,28 @@ class ScheduleWriteState extends State<ScheduleWrite> {
     if (sContents == '') {
       show("내용은 필수 입력값입니다.");
       return;
+    }
+
+    String sSDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dSDate);
+    String sEDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dEDate);
+
+    String conUserId = '';
+    String jabUserId = '';
+
+    for (int i = 0; i < conUserIdValue.length; i++) {
+      if (i == 0) {
+        conUserId += '[' + conUserIdValue[i] + ']';
+      } else {
+        conUserId += ',[' + conUserIdValue[i] + ']';
+      }
+    }
+
+    for (int i = 0; i < jabUserIdValue.length; i++) {
+      if (i == 0) {
+        jabUserId += '[' + jabUserIdValue[i] + ']';
+      } else {
+        jabUserId += ',[' + jabUserIdValue[i] + ']';
+      }
     }
 
     List<String> sParam = [
@@ -149,6 +252,8 @@ class ScheduleWriteState extends State<ScheduleWrite> {
       sContents,
       sOrderNo,
       sShipNo,
+      conUserId,
+      jabUserId
     ];
     await apiService.getInsert("SCHEDULE_LIST_APP_I1", sParam).then((value) {
       setState(() {
@@ -632,7 +737,24 @@ class ScheduleWriteState extends State<ScheduleWrite> {
           Row(
             children: [
               Expanded(
-                flex: 4,
+                flex: 2,
+                child: Container(
+                  alignment: Alignment.center,
+                  height: 40,
+                  child: AutoSizeText(
+                    '진행상태',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 16,
+                      fontFamily: 'NotoSansKR',
+                    ),
+                    minFontSize: 10,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 8,
                 child: Container(
                   height: 40,
                   margin: EdgeInsets.symmetric(horizontal: 0),
@@ -657,11 +779,11 @@ class ScheduleWriteState extends State<ScheduleWrite> {
                             minFontSize: 10,
                             maxLines: 1,
                           ),
-                          value: 1,
+                          value: 0,
                         ),
                         DropdownMenuItem(
                           child: AutoSizeText(
-                            "진행",
+                            "진행중",
                             style: TextStyle(
                               fontSize: 14,
                               fontFamily: 'NotoSansKR',
@@ -670,7 +792,7 @@ class ScheduleWriteState extends State<ScheduleWrite> {
                             minFontSize: 10,
                             maxLines: 1,
                           ),
-                          value: 2,
+                          value: 1,
                         ),
                         DropdownMenuItem(
                           child: AutoSizeText(
@@ -683,7 +805,20 @@ class ScheduleWriteState extends State<ScheduleWrite> {
                             minFontSize: 10,
                             maxLines: 1,
                           ),
-                          value: 3,
+                          value: 2,
+                        ),
+                        DropdownMenuItem(
+                          child: AutoSizeText(
+                            "지연",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontFamily: 'NotoSansKR',
+                              fontWeight: FontWeight.w600,
+                            ),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                          value: -1,
                         ),
                       ],
                       onChanged: (value) {
@@ -695,127 +830,223 @@ class ScheduleWriteState extends State<ScheduleWrite> {
                   ),
                 ),
               ),
-              Expanded(
-                flex: 1,
-                child: Container(),
-              ),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  alignment: Alignment.center,
-                  height: 40,
-                  child: Form(
-                    key: refFormKey,
-                    child: TextField(
-                      autofocus: false,
-                      controller: refTextEditController,
-                      focusNode: refFocusNode,
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(10.0),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        hintText: "권한자",
-                      ),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'NotoSansKR',
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              // Expanded(
+              //   flex: 1,
+              //   child: Container(),
+              // ),
+              // Expanded(
+              //   flex: 4,
+              //   child: Container(
+              //     alignment: Alignment.center,
+              //     height: 40,
+              //     child: Form(
+              //       key: refFormKey,
+              //       child: TextField(
+              //         autofocus: false,
+              //         controller: refTextEditController,
+              //         focusNode: refFocusNode,
+              //         decoration: InputDecoration(
+              //           contentPadding: EdgeInsets.all(10.0),
+              //           enabledBorder: OutlineInputBorder(
+              //             borderSide: BorderSide(
+              //               color: Colors.transparent,
+              //             ),
+              //           ),
+              //           focusedBorder: OutlineInputBorder(
+              //             borderSide: BorderSide(
+              //               color: Colors.transparent,
+              //             ),
+              //           ),
+              //           filled: true,
+              //           fillColor: Colors.grey[100],
+              //           hintText: "권한자",
+              //         ),
+              //         style: TextStyle(
+              //           fontSize: 16,
+              //           fontFamily: 'NotoSansKR',
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
           SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 4,
-                child: Container(
-                  alignment: Alignment.center,
-                  height: 40,
-                  child: Form(
-                    key: jabFormKey,
-                    child: TextField(
-                      autofocus: false,
-                      controller: jabTextEditController,
-                      focusNode: jabFocusNode,
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(10.0),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        hintText: "작업자",
-                      ),
+
+          Container(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 40,
+                    child: AutoSizeText(
+                      '권한자',
                       style: TextStyle(
+                        color: Colors.grey[700],
                         fontSize: 16,
                         fontFamily: 'NotoSansKR',
+                      ),
+                      minFontSize: 10,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 8,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        showDialog(
+                          context: context,
+                          builder: (_) {
+                            return EmployeeList(refUserList);
+                          },
+                        );
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      height: 40,
+                      color: Colors.grey[100],
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        alignment: Alignment.centerLeft,
+                        child: AutoSizeText(
+                          refUserNameList,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontFamily: 'NotoSansKR',
+                          ),
+                          minFontSize: 10,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Container(),
-              ),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  alignment: Alignment.center,
-                  height: 40,
-                  child: Form(
-                    key: conFormKey,
-                    child: TextField(
-                      autofocus: false,
-                      controller: conTextEditController,
-                      focusNode: conFocusNode,
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(10.0),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        hintText: "참조자",
-                      ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10),
+
+          Container(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 40,
+                    child: AutoSizeText(
+                      '작업자',
                       style: TextStyle(
+                        color: Colors.grey[700],
                         fontSize: 16,
                         fontFamily: 'NotoSansKR',
+                      ),
+                      minFontSize: 10,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 8,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        showDialog(
+                          context: context,
+                          builder: (_) {
+                            return EmployeeList(jabUserList);
+                          },
+                        );
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      height: 40,
+                      color: Colors.grey[100],
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        alignment: Alignment.centerLeft,
+                        child: AutoSizeText(
+                          jabUserNameList,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontFamily: 'NotoSansKR',
+                          ),
+                          minFontSize: 10,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 5),
+          Container(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 40,
+                    child: AutoSizeText(
+                      '참조자',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 16,
+                        fontFamily: 'NotoSansKR',
+                      ),
+                      minFontSize: 10,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 8,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        showDialog(
+                          context: context,
+                          builder: (_) {
+                            return EmployeeList(conUserList);
+                          },
+                        );
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      height: 40,
+                      color: Colors.grey[100],
+                      child: Container(
+                        padding: EdgeInsets.all(5),
+                        alignment: Alignment.centerLeft,
+                        child: AutoSizeText(
+                          conUserNameList,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontFamily: 'NotoSansKR',
+                          ),
+                          minFontSize: 10,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
@@ -827,35 +1058,51 @@ class ScheduleWriteState extends State<ScheduleWrite> {
             constraints: BoxConstraints(
               minHeight: MediaQuery.of(context).size.height * 0.3,
             ),
-            child: Form(
-              key: contentFormKey,
-              child: TextField(
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
-                autofocus: false,
-                controller: contentTextEditController,
-                focusNode: contentFocusNode,
-                decoration: InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "내용을 입력해 주세요.",
-                ),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'NotoSansKR',
-                ),
-              ),
+            child: FlutterSummernote(
+              hint: "내용을 입력해주세요.",
+              key: summernoteKey,
+              showBottomToolbar: false,
+              customToolbar: """
+              [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['font', ['fontsize', 'fontname']],
+                ['color', ['forecolor', 'backcolor']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['height', ['height']],
+                ['view', ['fullscreen']]
+              ]
+        """,
             ),
+            // child: Form(
+            //   key: contentFormKey,
+            //   child: TextField(
+            //     keyboardType: TextInputType.multiline,
+            //     maxLines: null,
+            //     autofocus: false,
+            //     controller: contentTextEditController,
+            //     focusNode: contentFocusNode,
+            //     decoration: InputDecoration(
+            //       enabledBorder: OutlineInputBorder(
+            //         borderSide: BorderSide(
+            //           color: Colors.transparent,
+            //         ),
+            //       ),
+            //       focusedBorder: OutlineInputBorder(
+            //         borderSide: BorderSide(
+            //           color: Colors.transparent,
+            //         ),
+            //       ),
+            //       filled: true,
+            //       fillColor: Colors.white,
+            //       hintText: "내용을 입력해 주세요.",
+            //     ),
+            //     style: TextStyle(
+            //       fontSize: 16,
+            //       fontFamily: 'NotoSansKR',
+            //     ),
+            //   ),
+            // ),
           ),
         ],
       ),
@@ -908,13 +1155,21 @@ class ScheduleWriteState extends State<ScheduleWrite> {
                 primary: Colors.indigo[600],
               ),
               onPressed: () async {
+                var _etEditor = summernoteKey.currentState!.getText();
+                String sContent = '';
+                await _etEditor.then((value) {
+                  if (value.isNotEmpty) {
+                    sContent = value.toString();
+                    print(value.toString());
+                  }
+                });
                 await scheduleInsert(
                   titleTextEditController.text,
                   selectedStartDate,
                   selectedEndDate,
                   categoryValue,
                   member.user.userId,
-                  contentTextEditController.text,
+                  sContent,
                   sujuNoTextEditController.text,
                   shipNoTextEditController.text,
                 );
@@ -999,7 +1254,11 @@ class ScheduleWriteState extends State<ScheduleWrite> {
             actions: [
               TextButton(
                 child: Text("확인"),
-                onPressed: () {
+                onPressed: () async {
+                  for (int i = 0; i < conUserHpTokenValue.length; i++) {
+                    await sendPushMessage(
+                        conUserHpTokenValue[i], titleTextEditController.text);
+                  }
                   Navigator.pushReplacement(
                     context,
                     CupertinoPageRoute(
@@ -1014,7 +1273,7 @@ class ScheduleWriteState extends State<ScheduleWrite> {
               ),
             ],
           );
-        }); // 비밀번호 불일치
+        });
   }
 
   show(sMessage) {
@@ -1033,5 +1292,398 @@ class ScheduleWriteState extends State<ScheduleWrite> {
             ],
           );
         });
+  }
+}
+
+class EmployeeList extends StatefulWidget {
+  EmployeeList(this.func);
+  Function func;
+
+  @override
+  EmployeeListState createState() => new EmployeeListState();
+}
+
+class EmployeeListState extends State<EmployeeList> {
+  late Function func;
+
+  late String id;
+  late String password;
+  late UserManager member;
+
+  APIService apiService = new APIService();
+
+  RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+  FocusNode keyWordFocusNode = FocusNode();
+  final keyWordTextEditController = TextEditingController();
+  GlobalKey<FormState> keyWordFormKey = GlobalKey<FormState>();
+
+  late String pDepartNameTwo;
+  late String pName;
+  late String pUserId;
+
+  late int firstIndex;
+  late int lastIndex;
+
+  int itemCount = 0;
+  List<EmployeeResponseModel> employeeListValue = [];
+  late bool isMember;
+  late int sMemberSeq;
+
+  late String conUserString = '';
+
+  List<String> employeeUserId = [];
+  List<String> employeeUserName = [];
+  List<String> employeeHpToken = [];
+
+  @override
+  void initState() {
+    func = widget.func;
+    firstIndex = 1;
+    lastIndex = 20;
+    searchEmployee();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    keyWordTextEditController.dispose();
+    super.dispose();
+  }
+
+  searchEmployee() {
+    List<String> sParam = [
+      '',
+      '',
+      keyWordTextEditController.text,
+      firstIndex.toString(),
+      lastIndex.toString(),
+    ];
+    apiService.getSelect("EMPLOYEELIST_S2", sParam).then((value) {
+      setState(() {
+        if (value.employee.isNotEmpty) {
+          employeeListValue = value.employee;
+        }
+      });
+    });
+  }
+
+  memberPopupHead(String headName) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 2),
+      child: AutoSizeText(
+        headName,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: 14, fontFamily: 'NotoSansKR', color: Colors.white),
+        minFontSize: 8,
+        maxLines: 1,
+      ),
+    );
+  }
+
+  employeeRowText(String value, TextAlign align) {
+    return AutoSizeText(
+      value,
+      textAlign: align,
+      style: TextStyle(
+        fontSize: 12,
+        fontFamily: 'NotoSansKR',
+        color: Colors.grey[700],
+      ),
+      minFontSize: 9,
+      maxLines: 1,
+    );
+  }
+
+  employeeCard(
+      String sDepartName,
+      String sPosition,
+      String sName,
+      String sDepartNameTwo,
+      String sUserId,
+      String sDepartCode,
+      String sEMail,
+      String sHptoken) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20),
+      height: 35,
+      color: Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+              flex: 5, child: employeeRowText(sDepartName, TextAlign.left)),
+          Expanded(
+              flex: 1, child: employeeRowText(sPosition, TextAlign.center)),
+          Expanded(flex: 2, child: employeeRowText(sName, TextAlign.center)),
+          Expanded(
+            flex: 1,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  employeeUserId.add(sUserId);
+                  employeeUserName.add(sName);
+                  employeeHpToken.add(sHptoken);
+                  conUserString += sName + ', ';
+                });
+                // if (isMember) {
+                //   func(sDepartNameTwo, sName, sUserId);
+                // } else {
+                //   func(sDepartNameTwo, sName, sPosition, sUserId, sDepartCode,
+                //       sEMail, sMemberSeq, sHptoken);
+                // }
+              },
+              child: Container(
+                alignment: Alignment.center,
+                margin: EdgeInsets.symmetric(vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: new BorderRadius.circular(3),
+                ),
+                child: AutoSizeText(
+                  "선택",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'NotoSansKR',
+                    color: Colors.white,
+                  ),
+                  minFontSize: 9,
+                  maxLines: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color.fromRGBO(0, 0, 0, 0.2),
+      body: GestureDetector(
+        onTap: () {
+          keyWordFocusNode.unfocus();
+        },
+        child: Center(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.only(bottom: 15),
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  title: Container(
+                    height: 20,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            child:
+                                Icon(Icons.settings, color: Colors.cyan[400]),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 8,
+                          child: AutoSizeText(
+                            "직원 검색",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontFamily: 'NotoSansKR',
+                            ),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pop(context, true);
+                            },
+                            child: Container(
+                              child: Icon(Icons.close, color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 30,
+                  margin: EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 5),
+                          child: Form(
+                            key: keyWordFormKey,
+                            child: TextField(
+                              autofocus: false,
+                              controller: keyWordTextEditController,
+                              focusNode: keyWordFocusNode,
+                              decoration: InputDecoration(
+                                contentPadding: EdgeInsets.all(5),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.transparent,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.transparent,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                hintText: "이름을 입력하세요.",
+                              ),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'NotoSansKR',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 5),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              shape: new RoundedRectangleBorder(
+                                borderRadius: new BorderRadius.circular(5),
+                              ),
+                              primary: Colors.indigo[600],
+                            ),
+                            onPressed: () {
+                              searchEmployee();
+                            },
+                            child: memberPopupHead("검색"),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  alignment: Alignment.centerLeft,
+                  height: 25,
+                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 5),
+                          child: AutoSizeText(
+                            conUserString,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontFamily: 'NotoSansKR',
+                            ),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 5),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              shape: new RoundedRectangleBorder(
+                                borderRadius: new BorderRadius.circular(5),
+                              ),
+                              primary: Colors.blue[400],
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                func(conUserString, employeeUserId,
+                                    employeeUserName, employeeHpToken);
+                                Navigator.of(context).pop();
+                              });
+                            },
+                            child: memberPopupHead("확인"),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  title: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    height: 30,
+                    color: Colors.cyan[700],
+                    child: Row(
+                      children: [
+                        Expanded(flex: 5, child: memberPopupHead("부서")),
+                        Expanded(flex: 1, child: memberPopupHead("직급")),
+                        Expanded(flex: 2, child: memberPopupHead("성명")),
+                        Expanded(flex: 1, child: memberPopupHead("선택")),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SmartRefresher(
+                    enablePullDown: true,
+                    enablePullUp: true,
+                    controller: _refreshController,
+                    onRefresh: () {
+                      setState(() {
+                        lastIndex = 20;
+                        keyWordTextEditController.text = '';
+                        searchEmployee();
+                      });
+                      _refreshController.refreshCompleted();
+                    },
+                    onLoading: () {
+                      setState(() {
+                        lastIndex += 20;
+                        searchEmployee();
+                        _refreshController.loadComplete();
+                      });
+                      _refreshController.refreshCompleted();
+                    },
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < employeeListValue.length; i++)
+                            employeeCard(
+                                employeeListValue.elementAt(i).departName,
+                                employeeListValue.elementAt(i).position,
+                                employeeListValue.elementAt(i).name,
+                                employeeListValue.elementAt(i).departNameTwo,
+                                employeeListValue.elementAt(i).userId,
+                                employeeListValue.elementAt(i).departCode,
+                                employeeListValue.elementAt(i).eMail,
+                                employeeListValue.elementAt(i).hpToken),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

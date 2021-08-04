@@ -10,6 +10,7 @@ import 'package:nkproject/pages/board_write.dart';
 import 'package:nkproject/pages/schedule_detail.dart';
 import 'package:nkproject/pages/schedule_write.dart';
 import 'package:nkproject/utils.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'common/api_service.dart';
@@ -37,6 +38,8 @@ class HomeState extends State<Home> {
   late String password;
   late UserManager member;
   APIService apiService = new APIService();
+  RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
 
   late final PageController _pageController;
   late final ValueNotifier<List<Event>> _selectedEvents;
@@ -58,6 +61,16 @@ class HomeState extends State<Home> {
 
   late DateTime dateNow;
   int sDay = 0;
+  int subjectValue = 1;
+
+  FocusNode nameFocusNode = FocusNode();
+  final nameTextEditController = TextEditingController();
+  GlobalKey<FormState> nameFormKey = GlobalKey<FormState>();
+
+  var departValue = '';
+
+  List<String> departCodeList = [];
+  List<String> departNameList = [];
 
   @override
   void initState() {
@@ -65,6 +78,7 @@ class HomeState extends State<Home> {
     id = widget.id; //widget.id는 LogOutPage에서 전달받은 id를 의미한다.
     password = widget.password; //widget.pass LogOutPage에서 전달받은 pass 의미한다.
     member = widget.member;
+    nameTextEditController.text = '';
     dateNow = DateTime.parse(
         DateFormat('yyyy-MM-dd').format(DateTime.now()) + ' 00:00:00.000Z');
     asyncMethod();
@@ -74,16 +88,45 @@ class HomeState extends State<Home> {
 
   @override
   void dispose() {
+    nameTextEditController.dispose();
     _selectedEvents.dispose();
     super.dispose();
   }
 
+  searchDepart() async {
+    List<String> sParam = ['Y'];
+    await apiService.getSelect("DEPART_S1", sParam).then((value) {
+      setState(() {
+        if (value.depart.isNotEmpty) {
+          departCodeList.add('');
+          departNameList.add('ALL');
+          for (int i = 0; i < value.depart.length; i++) {
+            departCodeList.add(value.depart.elementAt(i).departCode);
+            departNameList.add(value.depart.elementAt(i).departName);
+          }
+        }
+      });
+    });
+  }
+
+  depart(String value) {
+    for (int i = 0; i < departNameList.length; i++) {
+      if (departCodeList[i] == value) {
+        return departNameList[i];
+      }
+    }
+  }
+
   void asyncMethod() async {
+    await searchDepart();
     await scheduleSearch();
-    print('456');
   }
 
   scheduleSearch() async {
+    scheduleStarts = [];
+    scheduleEventList = [];
+    _events = {};
+
     List<String> sParam = [
       member.user.userId,
       DateFormat('yyyy').format(dateNow),
@@ -121,7 +164,109 @@ class HomeState extends State<Home> {
                 DateTime.parse((scheduleStarts[i] + ' 00:00:00.000Z')),
                 () => scheduleEventList[i]);
           }
-        } else {}
+        } else {
+          print('fail');
+        }
+        _onDaySelected(dateNow, dateNow);
+      });
+    });
+  }
+
+  scheduleSearchDepart() async {
+    _events = {};
+    scheduleStarts = [];
+    scheduleEventList = [];
+
+    List<String> sParam = [
+      member.user.userId,
+      DateFormat('yyyy').format(dateNow),
+      DateFormat('MM').format(dateNow),
+      departValue,
+    ];
+    await apiService.getSelect("SCHEDULE_LIST_APP_S3", sParam).then((value) {
+      setState(() {
+        if (value.schedule.isNotEmpty) {
+          scheduleValue = value.schedule;
+          List<Event> scheduleEvent = [];
+          for (int i = 0; i < scheduleValue.length; i++) {
+            if (i == (scheduleValue.length) - 1) {
+              scheduleStarts.add(scheduleValue.elementAt(i).starts);
+              scheduleEvent
+                  .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+              scheduleEventList.add(scheduleEvent);
+              scheduleEvent = [];
+            } else {
+              if (scheduleValue.elementAt(i).starts ==
+                  scheduleValue.elementAt(i + 1).starts) {
+                scheduleEvent
+                    .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+              } else {
+                scheduleStarts.add(scheduleValue.elementAt(i).starts);
+                scheduleEvent
+                    .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+                scheduleEventList.add(scheduleEvent);
+                scheduleEvent = [];
+              }
+            }
+          }
+          for (int i = 0; i < scheduleStarts.length; i++) {
+            _events.putIfAbsent(
+                DateTime.parse((scheduleStarts[i] + ' 00:00:00.000Z')),
+                () => scheduleEventList[i]);
+          }
+        } else {
+          print('fail');
+        }
+        _onDaySelected(dateNow, dateNow);
+      });
+    });
+  }
+
+  scheduleSearchPerson() async {
+    scheduleStarts = [];
+    scheduleEventList = [];
+    _events = {};
+
+    List<String> sParam = [
+      member.user.userId,
+      DateFormat('yyyy').format(dateNow),
+      DateFormat('MM').format(dateNow),
+      nameTextEditController.text,
+    ];
+    await apiService.getSelect("SCHEDULE_LIST_APP_S4", sParam).then((value) {
+      setState(() {
+        if (value.schedule.isNotEmpty) {
+          scheduleValue = value.schedule;
+          List<Event> scheduleEvent = [];
+          for (int i = 0; i < scheduleValue.length; i++) {
+            if (i == (scheduleValue.length) - 1) {
+              scheduleStarts.add(scheduleValue.elementAt(i).starts);
+              scheduleEvent
+                  .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+              scheduleEventList.add(scheduleEvent);
+              scheduleEvent = [];
+            } else {
+              if (scheduleValue.elementAt(i).starts ==
+                  scheduleValue.elementAt(i + 1).starts) {
+                scheduleEvent
+                    .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+              } else {
+                scheduleStarts.add(scheduleValue.elementAt(i).starts);
+                scheduleEvent
+                    .add(Event(scheduleValue.elementAt(i).appoId.toString()));
+                scheduleEventList.add(scheduleEvent);
+                scheduleEvent = [];
+              }
+            }
+          }
+          for (int i = 0; i < scheduleStarts.length; i++) {
+            _events.putIfAbsent(
+                DateTime.parse((scheduleStarts[i] + ' 00:00:00.000Z')),
+                () => scheduleEventList[i]);
+          }
+        } else {
+          print('fail');
+        }
         _onDaySelected(dateNow, dateNow);
       });
     });
@@ -170,6 +315,190 @@ class HomeState extends State<Home> {
       height: 53,
       child: Center(
         child: Text(day, style: TextStyle(fontSize: 14, color: Colors.black)),
+      ),
+    );
+  }
+
+  searchPanel() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 4,
+                child: Container(
+                  height: 40,
+                  padding: EdgeInsets.all(5),
+                  margin: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Color.fromRGBO(230, 230, 230, 1)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton(
+                      value: subjectValue,
+                      items: [
+                        DropdownMenuItem(
+                          child: AutoSizeText(
+                            "부서",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontFamily: 'NotoSansKR',
+                              fontWeight: FontWeight.w600,
+                            ),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                          value: 1,
+                        ),
+                        DropdownMenuItem(
+                          child: AutoSizeText(
+                            "사원명",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontFamily: 'NotoSansKR',
+                              fontWeight: FontWeight.w600,
+                            ),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                          value: 2,
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          subjectValue = int.parse(value.toString());
+                        });
+                      },
+                      hint: Text("Select item"),
+                    ),
+                  ),
+                ),
+              ),
+              Visibility(
+                visible: (subjectValue == 1) ? false : true,
+                child: Expanded(
+                  flex: 5,
+                  child: Container(
+                    height: 40,
+                    margin: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: Form(
+                      key: nameFormKey,
+                      child: TextField(
+                        autofocus: false,
+                        controller: nameTextEditController,
+                        focusNode: nameFocusNode,
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(10.0),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              Icons.cancel,
+                              color: Colors.grey[400],
+                            ), // clear text
+                            onPressed: () {
+                              nameTextEditController.clear();
+                            },
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'NotoSansKR',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Visibility(
+                visible: (subjectValue == 1) ? true : false,
+                child: Expanded(
+                  flex: 5,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton(
+                      isExpanded: true,
+                      value: departValue,
+                      items: departCodeList.map(
+                        (value) {
+                          return DropdownMenuItem(
+                            value: value,
+                            child: AutoSizeText(
+                              depart(value),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'NotoSansKR',
+                                fontWeight: FontWeight.w600,
+                              ),
+                              minFontSize: 10,
+                              maxLines: 1,
+                            ),
+                          );
+                        },
+                      ).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          departValue = value.toString();
+                        });
+                      },
+                      hint: Text("Select item"),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: InkWell(
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 40,
+                    width: 40,
+                    margin: EdgeInsets.symmetric(vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo[700],
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: Icon(
+                      Icons.search,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onTap: () {
+                    setState(() {
+                      if (subjectValue == 1) {
+                        scheduleSearchDepart();
+                      } else {
+                        scheduleSearchPerson();
+                        nameFocusNode.unfocus();
+                      }
+                      // lastIndex = 10;
+                      // search();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -541,53 +870,72 @@ class HomeState extends State<Home> {
         member: member,
         storage: storage,
       ),
-      body: Column(
-        children: [
-          // addSchedule(),
-          ValueListenableBuilder<DateTime>(
-            valueListenable: headDay,
-            builder: (context, value, _) {
-              return _CalendarHeader(
-                focusedDay: value,
-                onLeftArrowTap: () {
-                  _pageController.previousPage(
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
+      body: GestureDetector(
+        onTap: () {
+          nameFocusNode.unfocus();
+        },
+        child: SmartRefresher(
+          enablePullDown: true,
+          enablePullUp: true,
+          controller: _refreshController,
+          onRefresh: () {
+            setState(() {
+              asyncMethod();
+            });
+            _refreshController.refreshCompleted();
+          },
+          child: Column(
+            children: [
+              searchPanel(),
+              // addSchedule(),
+              ValueListenableBuilder<DateTime>(
+                valueListenable: headDay,
+                builder: (context, value, _) {
+                  return _CalendarHeader(
+                    focusedDay: value,
+                    onLeftArrowTap: () {
+                      _pageController.previousPage(
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                      setState(() {
+                        sDay -= 30;
+                        dateNow = DateTime.parse(DateFormat('yyyy-MM-dd')
+                                .format(
+                                    DateTime.now().add(Duration(days: sDay))) +
+                            ' 00:00:00.000Z');
+                        scheduleSearch();
+                        _onDaySelected(dateNow, dateNow);
+                      });
+                    },
+                    onRightArrowTap: () {
+                      _pageController.nextPage(
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                      setState(() {
+                        sDay += 30;
+                        dateNow = DateTime.parse(DateFormat('yyyy-MM-dd')
+                                .format(
+                                    DateTime.now().add(Duration(days: sDay))) +
+                            ' 00:00:00.000Z');
+                        scheduleSearch();
+                        _onDaySelected(dateNow, dateNow);
+                      });
+                    },
                   );
-                  setState(() {
-                    sDay -= 30;
-                    dateNow = DateTime.parse(DateFormat('yyyy-MM-dd')
-                            .format(DateTime.now().add(Duration(days: sDay))) +
-                        ' 00:00:00.000Z');
-                    scheduleSearch();
-                    _onDaySelected(dateNow, dateNow);
-                  });
                 },
-                onRightArrowTap: () {
-                  _pageController.nextPage(
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                  setState(() {
-                    sDay += 30;
-                    dateNow = DateTime.parse(DateFormat('yyyy-MM-dd')
-                            .format(DateTime.now().add(Duration(days: sDay))) +
-                        ' 00:00:00.000Z');
-                    scheduleSearch();
-                    _onDaySelected(dateNow, dateNow);
-                  });
-                },
-              );
-            },
+              ),
+              boxScheculeCalendar(),
+              SizedBox(height: 20),
+              boxScheduleAdd(),
+              SizedBox(height: 10),
+              Expanded(
+                child: boxScheduleList(),
+              ),
+            ],
           ),
-          boxScheculeCalendar(),
-          SizedBox(height: 20),
-          boxScheduleAdd(),
-          SizedBox(height: 10),
-          Expanded(
-            child: boxScheduleList(),
-          ),
-        ],
+        ),
       ),
     );
   }

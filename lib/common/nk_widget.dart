@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nkproject/home.dart';
 import 'package:nkproject/login.dart';
 import 'package:nkproject/model/login_model.dart';
+import 'package:nkproject/pages/comment_page.dart';
 import 'package:nkproject/pages/meeting.dart';
 import 'package:nkproject/pages/my_page.dart';
 
@@ -77,25 +78,32 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
     final screenHeight = MediaQuery.of(context).size.height;
     // final screenWidth = MediaQuery.of(context).size.width;
 
-    Widget menuRow(String sMenuName) {
+    Widget menuRow(String sMenuName, IconData sIcons) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 9,
-            child: Text(
-              sMenuName,
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: 'NotoSansKR',
+            flex: 3,
+            child: Container(
+              alignment: Alignment.centerLeft,
+              child: Icon(
+                sIcons,
+                size: 26,
               ),
             ),
           ),
           Expanded(
-            flex: 1,
-            child: Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 26,
+            flex: 7,
+            child: Container(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                sMenuName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontFamily: 'NotoSansKR',
+                ),
+              ),
             ),
           ),
         ],
@@ -179,6 +187,7 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           Container(
+            alignment: Alignment.centerLeft,
             height: screenHeight - 210,
             padding: EdgeInsets.all(45),
             child: ListView(
@@ -196,7 +205,7 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     );
                   },
-                  child: menuRow('HOME'),
+                  child: menuRow('HOME', Icons.home_sharp),
                 ),
                 SizedBox(height: 20),
                 InkWell(
@@ -212,7 +221,7 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     );
                   },
-                  child: menuRow('일정관리'),
+                  child: menuRow('일정관리', Icons.print),
                 ),
                 SizedBox(height: 20),
                 InkWell(
@@ -228,7 +237,23 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     );
                   },
-                  child: menuRow('회의관리'),
+                  child: menuRow('회의관리', Icons.print),
+                ),
+                SizedBox(height: 20),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) => Comment(
+                          id: id,
+                          password: password,
+                          member: member,
+                        ),
+                      ),
+                    );
+                  },
+                  child: menuRow('코멘트 관리', Icons.print),
                 ),
                 SizedBox(height: 20),
                 InkWell(
@@ -244,7 +269,7 @@ class NkDrawer extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     );
                   },
-                  child: menuRow('My Page'),
+                  child: menuRow('My Page', Icons.person),
                 ),
               ],
             ),

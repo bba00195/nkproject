@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+import 'package:nkproject/model/comment_model.dart';
 import 'package:nkproject/model/common_model.dart';
 import 'package:nkproject/model/conference_model.dart';
 import 'package:nkproject/model/employee_model.dart';
@@ -22,9 +23,17 @@ class APIService {
         final response = await http.post(url, body: sBody, headers: headers);
         result = BasicCategorisResultModel.fromJson(json.decode(response.body));
         break;
+      case "COMMENT_LIST_APP_S1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = CommentResultModel.fromJson(json.decode(response.body));
+        break;
       case "EMPLOYEELIST_S2":
         final response = await http.post(url, body: sBody, headers: headers);
         result = EmployeeResultModel.fromJson(json.decode(response.body));
+        break;
+      case "DEPART_S1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = DepartResultModel.fromJson(json.decode(response.body));
         break;
       case "MEETING_S2":
         final response = await http
@@ -40,8 +49,20 @@ class APIService {
         final response = await http.post(url, body: sBody, headers: headers);
         result = MeetingPlaceResultModel.fromJson(json.decode(response.body));
         break;
-      case "LOGIN_S1":
+      case "MEETING_COMMENT_S1":
         final response = await http.post(url, body: sBody, headers: headers);
+        result = MeetingCommentResultModel.fromJson(json.decode(response.body));
+        break;
+      case "MEETING_S1_APP":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = MeetingMemberResultModel.fromJson(json.decode(response.body));
+        break;
+      case "LOGIN_S1":
+        final response = await http
+            .post(url, body: sBody, headers: headers)
+            .catchError((error) {
+          print(error);
+        });
         result = LoginResultModel.fromJson(json.decode(response.body));
         break;
       case "SCHEDULE_LIST_APP_S1":
@@ -51,6 +72,14 @@ class APIService {
       case "SCHEDULE_LIST_APP_S2":
         final response = await http.post(url, body: sBody, headers: headers);
         result = ScheduleDetailResultModel.fromJson(json.decode(response.body));
+        break;
+      case "SCHEDULE_LIST_APP_S3":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = ScheduleListResultModel.fromJson(json.decode(response.body));
+        break;
+      case "SCHEDULE_LIST_APP_S4":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = ScheduleListResultModel.fromJson(json.decode(response.body));
         break;
       case "SEQUENCELIST_S1":
         final response = await http.post(url, body: sBody, headers: headers);
@@ -69,6 +98,10 @@ class APIService {
     var headers = {'Content-Type': "application/json"};
 
     switch (sFunctionName) {
+      case "MEETING_COMMENT_I1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
       case "MEETING_LIST_APP_I1":
         final response = await http.post(url, body: sBody, headers: headers);
         result = InsertResultModel.fromJson(json.decode(response.body));
@@ -98,7 +131,27 @@ class APIService {
         final response = await http.post(url, body: sBody, headers: headers);
         result = InsertResultModel.fromJson(json.decode(response.body));
         break;
+      case "MEETING_LIST_APP_U1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
+      case "MEETING_LIST_APP_U2":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
+      case "MEETING_LIST_APP_U3":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
+      case "MEETING_MEMBER_LIST_APP_U1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
       case "MEETINGLIST_U6":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
+      case "PROFILE_U1":
         final response = await http.post(url, body: sBody, headers: headers);
         result = InsertResultModel.fromJson(json.decode(response.body));
         break;
@@ -123,6 +176,10 @@ class APIService {
     var headers = {'Content-Type': "application/json"};
 
     switch (sFunctionName) {
+      case "MEETING_COMMENT_APP_D1":
+        final response = await http.post(url, body: sBody, headers: headers);
+        result = InsertResultModel.fromJson(json.decode(response.body));
+        break;
       case "MEETING_LIST_APP_D1":
         final response = await http.post(url, body: sBody, headers: headers);
         result = InsertResultModel.fromJson(json.decode(response.body));

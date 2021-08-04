@@ -5,8 +5,10 @@ import 'dart:ui';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as prefix;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:html_editor/html_editor.dart';
+import 'package:flutter_summernote/flutter_summernote.dart';
+// import 'package:html_editor/html_editor.dart';
 import 'package:intl/intl.dart';
 import 'package:nkproject/common/api_service.dart';
 import 'package:nkproject/common/nk_widget.dart';
@@ -18,6 +20,7 @@ import 'package:nkproject/pages/employee_list.dart';
 import 'package:nkproject/pages/meeting.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:http/http.dart' as http;
+import 'package:tuple/tuple.dart';
 // #endregion
 
 class MeetingWrite extends StatefulWidget {
@@ -47,6 +50,7 @@ class MeetingWriteState extends State<MeetingWrite> {
 
   APIService apiService = new APIService();
   final GlobalKey<ScaffoldState> scaffoldKey = new GlobalKey<ScaffoldState>();
+  final GlobalKey<FlutterSummernoteState> summernoteKey = new GlobalKey();
 
   FocusNode titleFocusNode = FocusNode();
   FocusNode contentFocusNode = FocusNode();
@@ -54,6 +58,8 @@ class MeetingWriteState extends State<MeetingWrite> {
   final contentTextEditController = TextEditingController();
   GlobalKey<FormState> titleFormKey = GlobalKey<FormState>();
   GlobalKey<FormState> contentFormKey = GlobalKey<FormState>();
+
+  prefix.QuillController controller = prefix.QuillController.basic();
 
   late DateTime selectedDate;
   late DateTime selectedTime;
@@ -677,44 +683,90 @@ class MeetingWriteState extends State<MeetingWrite> {
                 color: Color.fromRGBO(235, 235, 235, 1),
               ),
             ),
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height * 0.3,
+            // constraints: BoxConstraints(
+            //   minHeight: MediaQuery.of(context).size.height * 0.3,
+            // ),
+            child: FlutterSummernote(
+              hint: "내용을 입력해주세요.",
+              key: summernoteKey,
+              showBottomToolbar: false,
+              customToolbar: """
+              [
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['font', ['strikethrough', 'superscript', 'subscript']],
+                ['font', ['fontsize', 'fontname']],
+                ['color', ['forecolor', 'backcolor']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['height', ['height']],
+                ['view', ['fullscreen']]
+              ]
+        """,
             ),
-            child:
-                //  HtmlEditor(
-                //   hint: "Your text here...",
-                //   //value: "text content initial, if any",
-                //   key: contentFormKey,
-                // ),
-                Form(
-              key: contentFormKey,
-              child: TextField(
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
-                autofocus: false,
-                controller: contentTextEditController,
-                focusNode: contentFocusNode,
-                decoration: InputDecoration(
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "내용을 입력해 주세요.",
-                ),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'NotoSansKR',
-                ),
-              ),
-            ),
+            // Column(
+            //   children: [
+            //     prefix.QuillToolbar.basic(
+            //       controller: controller,
+            //       showBoldButton: true,
+            //       showItalicButton: true,
+            //       showUnderLineButton: true,
+            //       showStrikeThrough: true,
+            //       showColorButton: true,
+            //       showBackgroundColorButton: true,
+            //       showClearFormat: false,
+            //       showHeaderStyle: true,
+            //       showListNumbers: true,
+            //       showListBullets: true,
+            //       showListCheck: true,
+            //       showCodeBlock: true,
+            //       showQuote: true,
+            //       showIndent: false,
+            //       showLink: false,
+            //       showHistory: false,
+            //       showHorizontalRule: false,
+            //       multiRowsDisplay: false,
+            //     ),
+            //     prefix.QuillEditor(
+            //       controller: controller,
+            //       scrollController: ScrollController(),
+            //       scrollable: true,
+            //       focusNode: contentFocusNode,
+            //       autoFocus: false,
+            //       readOnly: false,
+            //       placeholder: '내용을 입력해주세요.',
+            //       expands: false,
+            //       padding: EdgeInsets.all(5),
+            //     ),
+            //   ],
+            // ),
+            //     Form(
+            //   key: contentFormKey,
+            //   child: TextField(
+            //     keyboardType: TextInputType.multiline,
+            //     maxLines: null,
+            //     autofocus: false,
+            //     controller: contentTextEditController,
+            //     focusNode: contentFocusNode,
+            //     decoration: InputDecoration(
+            //       enabledBorder: OutlineInputBorder(
+            //         borderSide: BorderSide(
+            //           color: Colors.transparent,
+            //         ),
+            //       ),
+            //       focusedBorder: OutlineInputBorder(
+            //         borderSide: BorderSide(
+            //           color: Colors.transparent,
+            //         ),
+            //       ),
+            //       filled: true,
+            //       fillColor: Colors.white,
+            //       hintText: "내용을 입력해 주세요.",
+            //     ),
+            //     style: TextStyle(
+            //       fontSize: 16,
+            //       fontFamily: 'NotoSansKR',
+            //     ),
+            //   ),
+            // ),
           ),
         ],
       ),
@@ -980,6 +1032,14 @@ class MeetingWriteState extends State<MeetingWrite> {
                 primary: Colors.indigo[600],
               ),
               onPressed: () async {
+                var _etEditor = summernoteKey.currentState!.getText();
+                String sContent = '';
+                await _etEditor.then((value) {
+                  if (value.isNotEmpty) {
+                    sContent = value.toString();
+                    print(value.toString());
+                  }
+                });
                 await selectMeetCodeSequence();
                 await meetingInsert(
                     pId,
@@ -987,25 +1047,29 @@ class MeetingWriteState extends State<MeetingWrite> {
                     selectedTime,
                     titleTextEditController.text,
                     placeValue.toString(),
-                    contentTextEditController.text,
+                    sContent,
                     member.user.userId);
-                for (int i = 0; i < memberDepartValue.length; i++) {
-                  if (memberDepartValue[i] != '') {
-                    await selectMeetMemberCodeSequence();
-                    await meetingMemberInsert(
-                        sMeetMemberCode,
-                        sMeetCode,
-                        memberDepartCodeValue[i],
-                        memberIdValue[i],
-                        memberDepartValue[i],
-                        memberNameValue[i],
-                        memberPositionValue[i],
-                        memberEMailValue[i],
-                        member.user.userId);
+                if (memberDepartValue.length > 0) {
+                  for (int i = 0; i < memberDepartValue.length; i++) {
+                    if (memberDepartValue[i] != '') {
+                      await selectMeetMemberCodeSequence();
+                      await meetingMemberInsert(
+                          sMeetMemberCode,
+                          sMeetCode,
+                          memberDepartCodeValue[i],
+                          memberIdValue[i],
+                          memberDepartValue[i],
+                          memberNameValue[i],
+                          memberPositionValue[i],
+                          memberEMailValue[i],
+                          member.user.userId);
+                    }
                   }
-                }
-                if (rsMsg == "S") {
-                  showRoute("회의가 등록되었습니다.");
+                  if (rsMsg == "S") {
+                    showRoute("회의가 등록되었습니다.");
+                  } else {
+                    showRoute("회의가 등록되었습니다.");
+                  }
                 }
               },
               child: Text(

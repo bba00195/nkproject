@@ -11,6 +11,8 @@ import 'package:nkproject/common/api_service.dart';
 import 'package:nkproject/common/nk_widget.dart';
 import 'package:nkproject/model/meeting_model.dart';
 import 'package:nkproject/model/login_model.dart';
+import 'package:nkproject/pages/flutter_summernote.dart';
+import 'package:nkproject/pages/meeting_detail.dart';
 import 'package:nkproject/pages/meeting_write.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 // #endregion
@@ -526,7 +528,18 @@ class MeetingState extends State<Meeting> {
           (member.user.authorId == 'ROLE_ADMIN')) {
         return InkWell(
           onTap: () {
-            showMessage(sMeetCode);
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => MeetingDetail(
+                  id: id,
+                  password: password,
+                  member: member,
+                  meetCode: sMeetCode,
+                ),
+              ),
+            );
+            // showMessage(sMeetCode);
           },
           child: Container(
             margin: EdgeInsets.symmetric(horizontal: 3),
