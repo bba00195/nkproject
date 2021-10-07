@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as prefix;
+// import 'package:flutter_quill/flutter_quill.dart' as prefix;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_summernote/flutter_summernote.dart';
 // import 'package:html_editor/html_editor.dart';
@@ -59,7 +59,7 @@ class MeetingWriteState extends State<MeetingWrite> {
   GlobalKey<FormState> titleFormKey = GlobalKey<FormState>();
   GlobalKey<FormState> contentFormKey = GlobalKey<FormState>();
 
-  prefix.QuillController controller = prefix.QuillController.basic();
+  // prefix.QuillController controller = prefix.QuillController.basic();
 
   late DateTime selectedDate;
   late DateTime selectedTime;
@@ -81,7 +81,7 @@ class MeetingWriteState extends State<MeetingWrite> {
   late String sMeetCode = '';
   late String sMeetMemberCode = '';
 
-  late String rsMsg;
+  late String rsMsg = '';
 
   String constructFCMPayload(String token, String meetName) {
     return jsonEncode({
@@ -260,10 +260,10 @@ class MeetingWriteState extends State<MeetingWrite> {
       return;
     }
 
-    if (sContents == '') {
-      show("내용은 필수 입력값입니다.");
-      return;
-    }
+    // if (sContents == '') {
+    //   show("내용은 필수 입력값입니다.");
+    //   return;
+    // }
 
     List<String> sParam = [
       sMeetCode,
@@ -1037,7 +1037,7 @@ class MeetingWriteState extends State<MeetingWrite> {
                 await _etEditor.then((value) {
                   if (value.isNotEmpty) {
                     sContent = value.toString();
-                    print(value.toString());
+                    // print(value.toString());
                   }
                 });
                 await selectMeetCodeSequence();

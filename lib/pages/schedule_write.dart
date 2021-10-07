@@ -216,10 +216,10 @@ class ScheduleWriteState extends State<ScheduleWrite> {
       return;
     }
 
-    if (sContents == '') {
-      show("내용은 필수 입력값입니다.");
-      return;
-    }
+    // if (sContents == '') {
+    //   show("내용은 필수 입력값입니다.");
+    //   return;
+    // }
 
     String sSDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dSDate);
     String sEDate = DateFormat('yyyy-MM-dd 00:00:00.000').format(dEDate);

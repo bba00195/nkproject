@@ -294,10 +294,8 @@ class LoginState extends State<Login> {
         onPressed: () async {
           await login(
               idTextEditController.text, passwordTextEditController.text);
-          print('1');
           if (sRsMsg == "S") {
             await tokenUpdate(idTextEditController.text, hpToken);
-            print('2');
             Navigator.push(
               context,
               CupertinoPageRoute(
@@ -320,11 +318,6 @@ class LoginState extends State<Login> {
       ),
     );
   }
-  // #endregion
-  //
-  // #endregion
-
-  // #endregion
 
   @override
   Widget build(BuildContext context) {
@@ -362,12 +355,6 @@ class LoginState extends State<Login> {
     );
     // #endregion
   }
-  // #region Event
-  //
-  //
-  //
-  //
-  //final
 
   show(sMessage) {
     return showCupertinoDialog(
@@ -386,8 +373,6 @@ class LoginState extends State<Login> {
           );
         }); // 비밀번호 불일치
   }
-
-  // #endregion
 
   void focusChange(BuildContext context, FocusNode currentFocus) {
     currentFocus.unfocus(); //현재 FocusNode의 포커스를 지운다.

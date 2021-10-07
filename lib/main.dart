@@ -80,6 +80,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             departHead: value.login.elementAt(0).departHead,
             hpToken: value.login.elementAt(0).hpToken,
           );
+        } else {
+          AlertDialog();
         }
 
         Navigator.pushReplacement(
